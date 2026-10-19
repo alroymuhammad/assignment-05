@@ -15,12 +15,9 @@
     "evals:3": "pnpm run evals:build && node --env-file=.env packages/agents/dist/src/evals/troubleshooting.js",
     "evals:4": "pnpm run evals:build && node --env-file=.env packages/agents/dist/src/evals/support-policies.js",
     "evals:n": "pnpm run evals:build && node --env-file=.env packages/agents/dist/src/evals/products.js && node --env-file=.env packages/agents/dist/src/evals/billing.js && node --env-file=.env packages/agents/dist/src/evals/troubleshooting.js && node --env-file=.env packages/agents/dist/src/evals/support-policies.js",
-    "prepare": "husky",
-    "commitlint": "commitlint"
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.3",
-    "@commitlint/config-angular": "^21.2.3",
     "husky": "^9.1.7",
     "typescript": "~5.9.3"
   }
