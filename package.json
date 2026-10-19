@@ -1,0 +1,27 @@
+{
+  "name": "assignment-05",
+  "private": true,
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/**' dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "evals:build": "pnpm --filter @repo/agents build",
+    "evals:1": "pnpm run evals:build && node --env-file=.env packages/agents/dist/src/evals/products.js",
+    "evals:2": "pnpm run evals:build && node --env-file=.env packages/agents/dist/src/evals/billing.js",
+    "evals:3": "pnpm run evals:build && node --env-file=.env packages/agents/dist/src/evals/troubleshooting.js",
+    "evals:4": "pnpm run evals:build && node --env-file=.env packages/agents/dist/src/evals/support-policies.js",
+    "evals:n": "pnpm run evals:build && node --env-file=.env packages/agents/dist/src/evals/products.js && node --env-file=.env packages/agents/dist/src/evals/billing.js && node --env-file=.env packages/agents/dist/src/evals/troubleshooting.js && node --env-file=.env packages/agents/dist/src/evals/support-policies.js",
+    "prepare": "husky",
+    "commitlint": "commitlint"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-angular": "^21.2.3",
+    "husky": "^9.1.7",
+    "typescript": "~5.9.3"
+  }
+}
