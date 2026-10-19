@@ -1,0 +1,260 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    @apply m-0 bg-slate-100 font-sans text-slate-950 antialiased;
+  }
+
+  button,
+  [contenteditable="true"] {
+    outline: none;
+  }
+
+  ::selection {
+    @apply bg-blue-200 text-slate-950;
+  }
+}
+
+.chat-page {
+  min-height: 100dvh;
+  padding: 2rem 1rem;
+}
+
+.chat-shell {
+  display: flex;
+  width: min(100%, 48rem);
+  height: calc(100dvh - 4rem);
+  min-height: 32rem;
+  margin: 0 auto;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 1rem 3rem -2rem rgb(15 23 42 / 0.28);
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.chat-header h1,
+.empty-state h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.chat-header p,
+.empty-state p {
+  margin: 0.25rem 0 0;
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.status-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: #16a34a;
+  box-shadow: 0 0 0 0.25rem #dcfce7;
+}
+
+.chat-viewport {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 1.5rem;
+  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-width: thin;
+}
+
+.empty-state {
+  display: grid;
+  flex: 1;
+  place-content: center;
+  text-align: center;
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.message {
+  width: fit-content;
+  max-width: min(85%, 42rem);
+}
+
+.message-user {
+  align-self: flex-end;
+}
+
+.message-author {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.message-user .message-author {
+  text-align: right;
+}
+
+.message-content {
+  padding: 0.75rem 1rem;
+  border-radius: 0.875rem;
+  background: #f1f5f9;
+  color: #0f172a;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.message-user .message-content {
+  background: #1d4ed8;
+  color: white;
+}
+
+.message-content p,
+.message-content pre {
+  margin: 0;
+}
+
+.message-content p + p,
+.message-content pre {
+  margin-top: 0.75rem;
+}
+
+.message-content pre {
+  overflow-x: auto;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: #0f172a;
+  color: #f8fafc;
+  font-size: 0.8125rem;
+}
+
+.chat-loading,
+.chat-error {
+  margin-top: 1rem;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.chat-error {
+  color: #b91c1c;
+}
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.composer-input {
+  min-height: 2.75rem;
+  max-height: 9rem;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: white;
+  line-height: 1.4;
+}
+
+.composer-input:focus-visible {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px #dbeafe;
+}
+
+.composer-input:empty::before {
+  color: #64748b;
+}
+
+.composer-button {
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: #1d4ed8;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+}
+
+.composer-button:hover {
+  background: #1e40af;
+}
+
+.composer-button:focus-visible {
+  box-shadow: 0 0 0 3px #bfdbfe;
+}
+
+.composer-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.secondary-button {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.secondary-button:hover {
+  background: #cbd5e1;
+}
+
+@media (max-width: 640px) {
+  .chat-page {
+    padding: 0;
+  }
+
+  .chat-shell {
+    height: 100dvh;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .chat-header,
+  .chat-viewport {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .message {
+    max-width: 92%;
+  }
+
+  .composer {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .composer-button {
+    padding: 0 0.875rem;
+  }
+}
