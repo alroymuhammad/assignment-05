@@ -3,3 +3,6 @@ packages:
   - packages/*
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - '@anvia/core@1.17.0'
+  - '@anvia/openai@1.3.4'
