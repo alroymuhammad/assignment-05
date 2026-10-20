@@ -9,7 +9,7 @@
     "dev": "pnpm --parallel --filter './apps/**' dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "db:up": "docker compose -f docker-compose.dev.yml up -d postgres",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d --wait postgres",
     "db:down": "docker compose -f docker-compose.dev.yml down",
     "db:migrate": "pnpm --filter @repo/db migrate",
     "evals:build": "pnpm --filter @repo/agents build",
