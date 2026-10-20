@@ -1,4 +1,8 @@
-export { runAgent, type RunAgentOptions } from './src/agent.js'
+export {
+  runAgent,
+  type AgentUserMessage,
+  type RunAgentOptions,
+} from './src/agent.js'
 export { DEFAULT_MODEL_ID, getModel } from './src/models.js'
 export { BASE_INSTRUCTION } from './src/instruction.js'
 export { document } from './src/context/document.js'
