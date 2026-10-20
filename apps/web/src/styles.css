@@ -62,6 +62,15 @@
   to { opacity: 1; }
 }
 
+@keyframes stream-reveal {
+  from { opacity: var(--anvia-stream-reveal-opacity); }
+  to { opacity: 1; }
+}
+
+[data-state='revealing'] {
+  animation: stream-reveal var(--anvia-stream-reveal-duration) cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
 @keyframes toast-in {
   from { opacity: 0; transform: translate(-50%, -6px); }
   to { opacity: 1; transform: translate(-50%, 0); }

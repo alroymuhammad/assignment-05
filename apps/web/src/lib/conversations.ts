@@ -1,19 +1,13 @@
 import { createHttpClientTransport, type UIMessage } from '@anvia/client'
 
 const SESSION_KEY = 'maju-telco:session-id'
-const USER_KEY = 'maju-telco:user-id'
-
-function storedId(key: string): string {
-  const existing = window.localStorage.getItem(key)
-  if (existing) return existing
-
-  const id = window.crypto.randomUUID()
-  window.localStorage.setItem(key, id)
-  return id
-}
+const PENDING_MESSAGE_PREFIX = 'maju-telco:pending-message:'
+const USER_ID = 'default-user'
 
 export function currentSessionId(): string {
-  return storedId(SESSION_KEY)
+  const existing = window.localStorage.getItem(SESSION_KEY)
+  if (existing) return existing
+  return startNewSession()
 }
 
 export function startNewSession(): string {
@@ -26,10 +20,22 @@ export function selectSession(sessionId: string): void {
   window.localStorage.setItem(SESSION_KEY, sessionId)
 }
 
+export function queuePendingMessage(sessionId: string, message: string): void {
+  window.sessionStorage.setItem(`${PENDING_MESSAGE_PREFIX}${sessionId}`, message)
+}
+
+export function pendingMessage(sessionId: string): string | null {
+  return window.sessionStorage.getItem(`${PENDING_MESSAGE_PREFIX}${sessionId}`)
+}
+
+export function clearPendingMessage(sessionId: string): void {
+  window.sessionStorage.removeItem(`${PENDING_MESSAGE_PREFIX}${sessionId}`)
+}
+
 function identityHeaders(): Record<string, string> {
   return {
     'x-session-id': currentSessionId(),
-    'x-user-id': storedId(USER_KEY),
+    'x-user-id': USER_ID,
   }
 }
 

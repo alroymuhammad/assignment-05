@@ -1,11 +1,13 @@
+import type { UIMessage } from '@anvia/client'
 import { useChat } from '@anvia/react'
 import {
   ChatProvider,
   ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
+  type ComposerSubmitMessageArgs,
 } from '@anvia/react-ui'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Sidebar } from '../components/sidebar'
 import {
@@ -24,9 +26,9 @@ import {
 } from '../components/icons'
 import {
   chatTransport,
-  currentSessionId,
-  getConversation,
+  clearPendingMessage,
   listConversations,
+  queuePendingMessage,
   selectSession,
   startNewSession,
   type ConversationSummary,
@@ -42,7 +44,10 @@ const iconButton =
 const messageContent =
   'min-w-0 break-words text-[15.5px] leading-[1.7] text-slate-800 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-2 [&_h1]:mt-5 [&_h1]:text-2xl [&_h2]:mb-2 [&_h2]:mt-5 [&_h2]:text-xl [&_h3]:mb-2 [&_h3]:mt-5 [&_h3]:text-[1.08rem] [&_h4]:mb-2 [&_h4]:mt-5 [&_h4]:text-base [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_h4]:font-semibold [&_h1]:tracking-[-0.02em] [&_h2]:tracking-[-0.02em] [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-1 [&_li]:pl-0.5 [&_li::marker]:text-slate-400 [&_strong]:font-semibold [&_a]:text-blue-700 [&_a]:underline [&_a]:decoration-1 [&_a]:underline-offset-[3px] hover:[&_a]:text-blue-900 [&_code]:rounded-md [&_code]:border [&_code]:border-slate-200 [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.86em] [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-[#0b1739] [&_pre]:p-4 [&_pre]:text-[13px] [&_pre]:leading-relaxed [&_pre]:text-slate-100 [&_pre_code]:border-0 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-[inherit] [&_blockquote]:my-4 [&_blockquote]:border-l [&_blockquote]:border-blue-500 [&_blockquote]:py-0.5 [&_blockquote]:pl-4 [&_blockquote]:text-slate-600 [&_hr]:my-6 [&_hr]:border-slate-200 [&_table]:my-4 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-sm [&_th]:border [&_th]:border-slate-200 [&_th]:bg-slate-100 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_td]:border [&_td]:border-slate-200 [&_td]:px-3 [&_td]:py-2 [&_tr:nth-child(even)_td]:bg-slate-50 [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-xl'
 
-export const Route = createFileRoute('/')({ component: Home })
+export const Route = createFileRoute('/')({
+  loader: listConversations,
+  component: Home,
+})
 
 function getGreeting(hour: number) {
   if (hour < 12) return 'Good morning'
@@ -58,9 +63,15 @@ function readStoredSidebarState() {
   }
 }
 
-function MessageContentParts() {
+function MessageContentParts({
+  isStreaming,
+  resetKey,
+}: {
+  isStreaming: boolean
+  resetKey: string
+}) {
   return (
-    <MessagePrimitive.Parts>
+    <MessagePrimitive.Parts stream={{ isStreaming, resetKey }}>
       {(part) =>
         part.type === 'text' ? (
           <MessagePrimitive.Markdown />
@@ -73,17 +84,33 @@ function MessageContentParts() {
 }
 
 function Home() {
-  const chat = useChat({ transport: chatTransport })
+  return <ChatPage conversations={Route.useLoaderData()} />
+}
+
+type ChatPageProps = {
+  conversations: ConversationSummary[]
+  initialMessages?: UIMessage[]
+  pendingMessage?: string | null
+  sessionId?: string
+}
+
+export function ChatPage({
+  conversations: initialConversations,
+  initialMessages = [],
+  pendingMessage,
+  sessionId,
+}: ChatPageProps) {
+  const navigate = useNavigate()
+  const chat = useChat({ transport: chatTransport, initialMessages })
   const isMobile = useMediaQuery(MOBILE_QUERY)
   const [sidebarHidden, setSidebarHidden] = useState(readStoredSidebarState)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
-  const [composerKey, setComposerKey] = useState(0)
-  const [activeSessionId, setActiveSessionId] = useState(currentSessionId)
-  const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const activeSessionId = sessionId ?? ''
+  const [conversations, setConversations] = useState(initialConversations)
 
   const noticeTimeout = useRef<number | null>(null)
-  const restoredSession = useRef(false)
+  const pendingMessageStarted = useRef(false)
   const composerRef = useRef<HTMLDivElement>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const reopenButtonRef = useRef<HTMLButtonElement>(null)
@@ -136,51 +163,59 @@ function Home() {
   }, [showNotice])
 
   const handleNewChat = useCallback(() => {
-    const sessionId = startNewSession()
-    setActiveSessionId(sessionId)
-    chat.reset()
-    setComposerKey((key) => key + 1)
     setMobileSidebarOpen(false)
+    void navigate({ to: '/' })
     focusComposer()
-  }, [chat, focusComposer])
+  }, [focusComposer, navigate])
 
   const handleSelectRecent = useCallback(
-    async (summary: ConversationSummary) => {
-      try {
-        const conversation = await getConversation(summary.ref)
-        selectSession(conversation.sessionId)
-        setActiveSessionId(conversation.sessionId)
-        chat.reset()
-        chat.setMessages(conversation.messages)
-        setComposerKey((key) => key + 1)
-        setMobileSidebarOpen(false)
-      } catch {
-        showNotice('Could not open that conversation.')
-      }
+    (summary: ConversationSummary) => {
+      selectSession(summary.sessionId)
+      setMobileSidebarOpen(false)
+      void navigate({ to: '/s/$id', params: { id: summary.sessionId } })
     },
-    [chat, showNotice],
+    [navigate],
+  )
+
+  const handleSubmit = useCallback(
+    async ({
+      input,
+      attachments,
+      chat: controller,
+      clear,
+    }: ComposerSubmitMessageArgs) => {
+      if (!sessionId) {
+        const nextSessionId = startNewSession()
+        queuePendingMessage(nextSessionId, input)
+        clear()
+        await navigate({
+          to: '/s/$id',
+          params: { id: nextSessionId },
+          replace: true,
+        })
+        return
+      }
+
+      const submission = controller.sendMessage(
+        attachments.length > 0 ? { text: input, attachments } : { text: input },
+      )
+      clear()
+      await submission
+    },
+    [navigate, sessionId],
   )
 
   useEffect(() => {
-    if (restoredSession.current) return
-    restoredSession.current = true
+    if (!pendingMessage || !sessionId || pendingMessageStarted.current) return
 
-    void (async () => {
-      try {
-        const items = await listConversations()
-        setConversations(items)
-        const active = items.find(
-          (conversation) => conversation.sessionId === activeSessionId,
-        )
-        if (active) {
-          const conversation = await getConversation(active.ref)
-          chat.setMessages(conversation.messages)
-        }
-      } catch {
-        showNotice('Could not load conversation history.')
-      }
-    })()
-  }, [activeSessionId, chat, showNotice])
+    const timeout = window.setTimeout(() => {
+      pendingMessageStarted.current = true
+      clearPendingMessage(sessionId)
+      void chat.sendMessage({ text: pendingMessage })
+    }, 0)
+
+    return () => window.clearTimeout(timeout)
+  }, [chat, pendingMessage, sessionId])
 
   useEffect(() => {
     if (chat.status === 'ready' && chat.messages.length > 0) {
@@ -313,7 +348,14 @@ function Home() {
                       <MessagePrimitive.Content
                         className={`${messageContent} group-data-[role=user]/message:max-w-[min(100%,34rem)] group-data-[role=user]/message:rounded-[18px] group-data-[role=user]/message:bg-[#e8eefc] group-data-[role=user]/message:px-4 group-data-[role=user]/message:py-2.5 group-data-[role=user]/message:text-[15.5px] group-data-[role=user]/message:leading-relaxed group-data-[role=user]/message:text-slate-900 group-data-[role=user]/message:[&_p]:m-0 group-data-[role=user]/message:[&_[data-role=text]]:whitespace-pre-wrap`}
                       >
-                        <MessageContentParts />
+                        <MessageContentParts
+                          isStreaming={
+                            message.role === 'assistant' &&
+                            message.id === chat.messages.at(-1)?.id &&
+                            chat.status === 'streaming'
+                          }
+                          resetKey={message.id}
+                        />
                       </MessagePrimitive.Content>
                       {message.role === 'assistant' ? (
                         <MessagePrimitive.Actions className="mt-2 -ml-1.5 flex items-center gap-px opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100 [@media(hover:none)]:opacity-100">
@@ -366,7 +408,7 @@ function Home() {
             <div className="relative z-10 shrink-0 bg-[#f5f7fb] px-3 pb-[max(10px,env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:-top-8 before:h-8 before:bg-linear-to-b before:from-transparent before:to-[#f5f7fb] lg:px-[clamp(16px,4.5vw,44px)] lg:pb-[max(14px,env(safe-area-inset-bottom))]">
               <div className="mx-auto w-full max-w-3xl">
                 <ComposerPrimitive.Root
-                  key={composerKey}
+                  submitMessage={handleSubmit}
                   className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgb(15_23_42/0.08),0_16px_40px_-24px_rgb(30_64_175/0.35),inset_0_0_0_1px_rgb(203_213_225)] transition-shadow focus-within:shadow-[0_1px_2px_rgb(15_23_42/0.08),0_0_0_4px_rgb(59_130_246/0.15),inset_0_0_0_1px_rgb(37_99_235)] lg:rounded-[18px]"
                 >
                   <ComposerPrimitive.Input

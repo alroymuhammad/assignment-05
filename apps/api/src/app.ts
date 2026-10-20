@@ -13,10 +13,11 @@ import { z } from 'zod'
 export const app = new Hono()
 
 const idSchema = z.string().uuid()
+const userIdSchema = z.literal('default-user')
 
 function requestIdentity(c: { req: { header(name: string): string | undefined } }) {
   const sessionId = idSchema.safeParse(c.req.header('x-session-id'))
-  const userId = idSchema.safeParse(c.req.header('x-user-id'))
+  const userId = userIdSchema.safeParse(c.req.header('x-user-id'))
 
   if (!sessionId.success || !userId.success) return null
   return { sessionId: sessionId.data, userId: userId.data }
